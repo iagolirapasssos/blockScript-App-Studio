@@ -4,14 +4,14 @@ let draggedElementId = null; // Track the currently dragged element
 
 // Element categories and their associated HTML tags
 const elementCategories = {
-    'Layout': ['div', 'header', 'footer', 'nav', 'main', 'section', 'article', 'aside'],
-    'Text': ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'label'],
-    'Form': ['form', 'input', 'textarea', 'select', 'button', 'checkbox', 'radio'],
-    'Table': ['table', 'thead', 'tbody', 'tr', 'th', 'td'],
-    'List': ['ul', 'ol', 'li', 'dl', 'dt', 'dd'],
-    'Media': ['img', 'video', 'audio', 'source', 'canvas', 'svg'],
-    'Link': ['a', 'link'],
-    'Semantic': ['article', 'aside', 'details', 'figcaption', 'figure', 'mark', 'summary', 'time']
+    'User Interface': ['Button', 'Label', 'TextBox', 'ListPicker', 'Checkbox', 'Switch', 'Slider', 'ProgressBar'],
+    'Layout': ['HorizontalArrangement', 'VerticalArrangement', 'TableArrangement'],
+    'Media': ['Image', 'VideoPlayer', 'AudioPlayer', 'Camera', 'ImagePicker'],
+    'Drawing and Animation': ['Canvas', 'Ball', 'Sprite'],
+    'Maps': ['Map', 'Marker', 'Circle'],
+    'Charts': ['Chart', 'BarChart', 'LineChart', 'PieChart'],
+    'Sensors': ['Accelerometer', 'LocationSensor', 'OrientationSensor'],
+    'Extensions': ['CustomExtension']
 };
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -187,24 +187,144 @@ previewArea.addEventListener('drop', (e) => {
 function createElementByType(type, x, y) {
     let element;
     switch (type) {
-        case 'button':
+        case 'Button':
             element = document.createElement('button');
             element.textContent = 'Button';
             element.style.padding = '5px 10px';
             break;
-        case 'input':
+        case 'Label':
+            element = document.createElement('span');
+            element.textContent = 'Label';
+            break;
+        case 'TextBox':
             element = document.createElement('input');
             element.type = 'text';
             element.placeholder = 'Enter text';
             element.style.padding = '5px';
             break;
-        case 'p':
-            element = document.createElement('p');
-            element.textContent = 'Paragraph text';
+        case 'ListPicker':
+            element = document.createElement('select');
+            element.innerHTML = '<option>Item 1</option><option>Item 2</option>';
+            element.style.padding = '5px';
             break;
-        case 'h1':
-            element = document.createElement('h1');
-            element.textContent = 'Heading 1';
+        case 'Checkbox':
+            element = document.createElement('input');
+            element.type = 'checkbox';
+            break;
+        case 'Switch':
+            element = document.createElement('input');
+            element.type = 'checkbox';
+            element.classList.add('switch');
+            break;
+        case 'Slider':
+            element = document.createElement('input');
+            element.type = 'range';
+            break;
+        case 'ProgressBar':
+            element = document.createElement('progress');
+            element.value = 50;
+            element.max = 100;
+            break;
+        case 'HorizontalArrangement':
+        case 'VerticalArrangement':
+        case 'TableArrangement':
+            element = document.createElement('div');
+            element.textContent = type;
+            element.style.padding = '5px';
+            element.style.display = 'flex';
+            if (type === 'HorizontalArrangement') {
+                element.style.flexDirection = 'row';
+            } else if (type === 'VerticalArrangement') {
+                element.style.flexDirection = 'column';
+            }
+            break;
+        case 'Image':
+            element = document.createElement('img');
+            element.src = 'https://via.placeholder.com/150';
+            element.alt = 'Image';
+            break;
+        case 'VideoPlayer':
+            element = document.createElement('video');
+            element.controls = true;
+            element.innerHTML = '<source src="video.mp4" type="video/mp4">Your browser does not support the video tag.';
+            break;
+        case 'AudioPlayer':
+            element = document.createElement('audio');
+            element.controls = true;
+            element.innerHTML = '<source src="audio.mp3" type="audio/mp3">Your browser does not support the audio element.';
+            break;
+        case 'Camera':
+            element = document.createElement('div');
+            element.textContent = 'Camera (Placeholder)';
+            element.style.padding = '10px';
+            element.style.border = '1px solid #000';
+            element.style.backgroundColor = '#666';
+            break;
+        case 'ImagePicker':
+            element = document.createElement('input');
+            element.type = 'file';
+            element.accept = 'image/*';
+            break;
+        case 'Canvas':
+            element = document.createElement('canvas');
+            element.width = 150;
+            element.height = 150;
+            element.style.border = '1px solid #000';
+            break;
+        case 'Ball':
+        case 'Sprite':
+            element = document.createElement('div');
+            element.textContent = type;
+            element.style.width = '50px';
+            element.style.height = '50px';
+            element.style.backgroundColor = '#f00';
+            element.style.borderRadius = '50%';
+            break;
+        case 'Map':
+            element = document.createElement('div');
+            element.textContent = 'Map (Placeholder)';
+            element.style.width = '100%';
+            element.style.height = '200px';
+            element.style.backgroundColor = '#ccc';
+            break;
+        case 'Marker':
+            element = document.createElement('div');
+            element.textContent = 'Marker';
+            element.style.width = '20px';
+            element.style.height = '20px';
+            element.style.backgroundColor = '#f00';
+            break;
+        case 'Circle':
+            element = document.createElement('div');
+            element.textContent = 'Circle';
+            element.style.width = '100px';
+            element.style.height = '100px';
+            element.style.borderRadius = '50%';
+            element.style.border = '1px solid #000';
+            break;
+        case 'Chart':
+        case 'BarChart':
+        case 'LineChart':
+        case 'PieChart':
+            element = document.createElement('div');
+            element.textContent = type;
+            element.style.width = '200px';
+            element.style.height = '150px';
+            element.style.backgroundColor = '#eee';
+            break;
+        case 'Accelerometer':
+        case 'LocationSensor':
+        case 'OrientationSensor':
+            element = document.createElement('div');
+            element.textContent = type;
+            element.style.padding = '10px';
+            element.style.backgroundColor = '#999';
+            break;
+        case 'CustomExtension':
+            element = document.createElement('div');
+            element.textContent = 'Custom Extension';
+            element.style.padding = '10px';
+            element.style.backgroundColor = '#ffcc00';
             break;
         default:
             element = document.createElement('div');
