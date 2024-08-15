@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlockScript Studio 2024</title>
+    <title>Element Properties</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+</head>
+<body>
+    <div id="header">
+        <div id="logo">BlockScript Studio 2024</div>
+        <div>
+            <button id="newProject">New Project</button>
+            <button id="saveProject">Save</button>
+            <button id="runProject">Run</button>
+            <button id="toggleView">Toggle View</button>
+            <button id="exportProject">Export</button>
+            <select id="aspectRatio">
+                <option value="9:16">9:16 (Mobile)</option>
+                <option value="16:9">16:9 (Desktop)</option>
+            </select>
+        </div>
+    </div>
+    <div id="main">
+        <div id="editorArea">
+            <div id="blocklyArea"></div>
+            <div id="codeArea">
+                <h3>JavaScript Code</h3>
+                <pre id="generatedCode"></pre>
+            </div>
+        </div>
+        <div id="previewArea">
+            <div id="appContainer">
+                <div id="appPreview"></div>
+            </div>
+        </div>
+        <div id="elementPalette">
+            <!-- Element categories will be inserted here via JavaScript -->
+        </div>
+    </div>
+    <xml id="toolbox" style="display: none">
+        <category name="Logic" colour="%{BKY_LOGIC_HUE}">
+            <block type="controls_if"></block>
+            <block type="logic_compare"></block>
+            <block type="logic_operation"></block>
+            <block type="logic_negate"></block>
+            <block type="logic_boolean"></block>
+        </category>
+        <category name="Loops" colour="%{BKY_LOOPS_HUE}">
+            <block type="controls_repeat_ext"></block>
+            <block type="controls_whileUntil"></block>
+            <block type="controls_for"></block>
+            <block type="controls_forEach"></block>
+        </category>
+        <category name="Math" colour="%{BKY_MATH_HUE}">
+            <block type="math_number"></block>
+            <block type="math_arithmetic"></block>
+            <block type="math_single"></block>
+            <block type="math_round"></block>
+        </category>
+        <category name="Text" colour="%{BKY_TEXTS_HUE}">
+            <block type="text"></block>
+            <block type="text_join"></block>
+            <block type="text_append"></block>
+            <block type="text_length"></block>
+        </category>
+        <category name="Variables" custom="VARIABLE" colour="%{BKY_VARIABLES_HUE}">
+        </category>
+        <category name="Functions" custom="PROCEDURE" colour="%{BKY_PROCEDURES_HUE}">
+        </category>
+        <category name="App" colour="160">
+            <block type="app_get_element_by_id"></block>
+            <block type="app_set_element_property"></block>
+            <block type="app_add_event_listener"></block>
+            <block type="app_move_element"></block>
+        </category>
+    </xml>
+    <div class="elementCategories">
+        <div class="element" data-type="circle">Circle</div>
+        <div class="element" data-type="rectangle">Rectangle</div>
+        <div class="element" data-type="text">Text</div>
+    </div>
+
+    <div id="propertiesModal" class="properties-modal hidden">
+        <h3>Properties</h3>
+        <div id="propertiesContent"></div>
+    </div>
+
+    <script src="blocks.js"></script>
+    <script src="generators.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
+
