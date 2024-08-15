@@ -1,5 +1,6 @@
 let workspace;
 let currentElement = null;
+let draggedElementId = null; // Track the currently dragged element
 
 // Element categories and their associated HTML tags
 const elementCategories = {
@@ -14,231 +15,298 @@ const elementCategories = {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-     // Initialize Blockly with dark theme and set up the workspace
     workspace = Blockly.inject('blocklyArea', {
         toolbox: document.getElementById('toolbox'),
         theme: Blockly.Themes.Dark,
+        scrollbars: true,
+        trashcan: true
+    });
+    
+    workspace.addChangeListener(() => {
+        try {
+            const code = Blockly.JavaScript.workspaceToCode(workspace);
+            document.getElementById('generatedCode').innerText = code;
+        } catch (error) {
+            console.error('Error generating code:', error);
+        }
     });
 
-    // Ensure workspace is initialized before adding listener
-    if (workspace) {
-        workspace.addChangeListener(updateCode);
-    } else {
-        console.error('Blockly workspace failed to initialize.');
-    }
-
-    // Set up event listeners for UI buttons and dropdowns
-    document.getElementById('newProject').addEventListener('click', newProject);
+    document.getElementById('newProject').addEventListener('click', createNewProject);
     document.getElementById('saveProject').addEventListener('click', saveProject);
     document.getElementById('runProject').addEventListener('click', runProject);
     document.getElementById('toggleView').addEventListener('click', toggleView);
-    document.getElementById('aspectRatio').addEventListener('change', changeAspectRatio);
     document.getElementById('exportProject').addEventListener('click', exportProject);
 
-    // Populate the element palette with categories and elements
-    const palette = document.getElementById('elementPalette');
-    for (const category in elementCategories) {
-        const categoryDiv = document.createElement('div');
-        categoryDiv.classList.add('element-category');
-        categoryDiv.innerHTML = `<h3>${category}</h3>`;
-        const elementList = document.createElement('ul');
-        elementList.classList.add('sortable-list'); // Added class
-        elementCategories[category].forEach(tag => {
-            const li = document.createElement('li');
-            li.textContent = tag;
-            li.setAttribute('draggable', true);
-            li.addEventListener('click', () => addElementToApp(tag));
-            elementList.appendChild(li);
-        });
-        categoryDiv.appendChild(elementList);
-        palette.appendChild(categoryDiv);
+    createElementPalette();
 
-        // Make the element list sortable
-        new Sortable(elementList, {
-            animation: 150,
-            onEnd: function(evt) {
-                const newOrder = [];
-                evt.from.querySelectorAll('li').forEach(li => newOrder.push(li.textContent));
-                elementCategories[category] = newOrder;
-            }
+    Sortable.create(document.getElementById('elementPalette'), {
+        group: 'shared',
+        animation: 150
+    });
+
+    // Aspect ratio change listener
+    document.getElementById('aspectRatio').addEventListener('change', (event) => {
+        const appPreview = document.getElementById('appPreview');
+        const aspectRatio = event.target.value;
+        if (aspectRatio === '9:16') {
+            appPreview.style.width = '360px';
+            appPreview.style.height = '640px';
+        } else if (aspectRatio === '16:9') {
+            appPreview.style.width = '640px';
+            appPreview.style.height = '360px';
+        }
+    });
+
+    // Initial aspect ratio setup
+    document.getElementById('aspectRatio').dispatchEvent(new Event('change'));
+});
+
+function createNewProject() {
+    if (confirm('Are you sure you want to create a new project? Unsaved changes will be lost.')) {
+        workspace.clear();
+        document.getElementById('appPreview').innerHTML = '';
+    }
+}
+
+function saveProject() {
+    try {
+        const project = Blockly.Xml.workspaceToDom(workspace);
+        const xml = Blockly.Xml.domToText(project);
+        localStorage.setItem('savedProject', xml);
+        alert('Project saved!');
+    } catch (error) {
+        console.error('Error saving project:', error);
+    }
+}
+
+function runProject() {
+    try {
+        const code = Blockly.JavaScript.workspaceToCode(workspace);
+        const appPreview = document.getElementById('appPreview');
+        appPreview.innerHTML = ''; // Clear previous content
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.text = code;
+        appPreview.appendChild(script);
+    } catch (error) {
+        console.error('Error running project:', error);
+    }
+}
+
+function toggleView() {
+    const previewArea = document.getElementById('previewArea');
+    previewArea.style.display = previewArea.style.display === 'none' ? 'block' : 'none';
+}
+
+function exportProject() {
+    try {
+        const project = Blockly.Xml.workspaceToDom(workspace);
+        const xml = Blockly.Xml.domToText(project);
+        const blob = new Blob([xml], { type: 'text/xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'project.xml';
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error exporting project:', error);
+    }
+}
+
+function createElementPalette() {
+    const palette = document.getElementById('elementPalette');
+    for (const [category, elements] of Object.entries(elementCategories)) {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.classList.add('elementCategory');
+        const categoryTitle = document.createElement('div');
+        categoryTitle.classList.add('categoryTitle');
+        categoryTitle.textContent = category;
+        categoryDiv.appendChild(categoryTitle);
+
+        elements.forEach(element => {
+            const elementDiv = document.createElement('div');
+            elementDiv.classList.add('element');
+            elementDiv.id = `element-${element}`;
+            elementDiv.dataset.type = element;
+            elementDiv.textContent = element;
+            elementDiv.setAttribute('draggable', 'true');
+            elementDiv.addEventListener('dragstart', handleDragStart);
+            categoryDiv.appendChild(elementDiv);
         });
+
+        palette.appendChild(categoryDiv);
+    }
+}
+
+function handleDragStart(e) {
+    e.dataTransfer.setData('application/json', JSON.stringify({
+        type: e.target.dataset.type,
+        isNew: true
+    }));
+    e.dataTransfer.effectAllowed = 'copy';
+}
+
+const previewArea = document.getElementById('previewArea');
+
+previewArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+});
+
+previewArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const rect = previewArea.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+
+    // Garante que o elemento fique dentro do previewArea
+    x = Math.max(0, Math.min(x, rect.width - 50));  // 50 é uma largura mínima assumida
+    y = Math.max(0, Math.min(y, rect.height - 20)); // 20 é uma altura mínima assumida
+
+    try {
+        const data = JSON.parse(e.dataTransfer.getData('application/json'));
+        
+        if (data.isNew) {
+            // Criar novo elemento
+            const newElement = createElementByType(data.type, x, y);
+            newElement.id = `element-${Date.now()}`;  // Gera um ID único
+            previewArea.appendChild(newElement);
+        } else {
+            // Mover elemento existente
+            const element = document.getElementById(data.id);
+            if (element) {
+                element.style.left = `${x}px`;
+                element.style.top = `${y}px`;
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao processar o elemento arrastado:', error);
     }
 });
 
-// Function to add an HTML element to the app preview area
-// Function to add an HTML element to the app preview area with real functionality
-function addElementToApp(tag) {
-    const el = document.createElement(tag);
-    el.id = 'element-' + Date.now(); // Define um ID único
-	
-    console.log("tag: ", tag);
-    if (tag === 'button') {
-        el.textContent = 'Click me';
-        el.addEventListener('click', () => alert('Button clicked!'));
-    } else if (tag === 'input') {
-        el.type = 'text';
-        el.placeholder = 'Enter text';
-    } else {
-        el.textContent = tag;
+function createElementByType(type, x, y) {
+    let element;
+    switch (type) {
+        case 'button':
+            element = document.createElement('button');
+            element.textContent = 'Button';
+            element.style.padding = '5px 10px';
+            break;
+        case 'input':
+            element = document.createElement('input');
+            element.type = 'text';
+            element.placeholder = 'Enter text';
+            element.style.padding = '5px';
+            break;
+        case 'p':
+            element = document.createElement('p');
+            element.textContent = 'Paragraph text';
+            break;
+        case 'h1':
+            element = document.createElement('h1');
+            element.textContent = 'Heading 1';
+            break;
+        default:
+            element = document.createElement('div');
+            element.textContent = type;
+            element.style.padding = '5px';
     }
 
-    document.getElementById('appPreview').appendChild(el);
+    element.classList.add('draggableElement');
+    element.style.position = 'absolute';
+    element.style.left = `${x}px`;
+    element.style.top = `${y}px`;
+    element.style.backgroundColor = '#f0f0f0';
+    element.style.border = '1px solid #999';
+    element.style.borderRadius = '3px';
+    element.style.cursor = 'move';
+    element.style.minWidth = '50px';
+    element.style.minHeight = '20px';
 
-    // Adiciona evento de clique para exibir propriedades
-    el.addEventListener('click', function() {
-        showProperties(el);
+    element.setAttribute('draggable', 'true');
+    element.addEventListener('dragstart', (e) => {
+        const rect = e.target.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+        const offsetY = e.clientY - rect.top;
+        e.dataTransfer.setData('application/json', JSON.stringify({
+            id: e.target.id,
+            offsetX,
+            offsetY,
+            isNew: false
+        }));
+    });
+
+    element.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showProperties(element);
+    });
+
+    return element;
+}
+
+const modal = document.getElementById('propertiesModal');
+const closeButton = document.querySelector('.close-button');
+const propertiesDiv = document.getElementById('properties');
+
+function showProperties(element) {
+    const properties = [
+        { name: 'id', editable: false },
+        { name: 'tagName', editable: false },
+        { name: 'innerText', editable: true },
+        { name: 'left', editable: true },
+        { name: 'top', editable: true },
+        { name: 'width', editable: true },
+        { name: 'height', editable: true },
+        { name: 'backgroundColor', editable: true },
+        { name: 'color', editable: true },
+        { name: 'fontSize', editable: true },
+    ];
+
+    let propertiesHTML = '';
+    properties.forEach(prop => {
+        let value = prop.name === 'tagName' ? element.tagName.toLowerCase() : 
+                    (element.style[prop.name] || element[prop.name] || '');
+        
+        propertiesHTML += `
+            <div class="property-row">
+                <span class="property-label">${prop.name}:</span>
+                ${prop.editable ? 
+                    `<input type="text" class="property-input" data-property="${prop.name}" value="${value}">` :
+                    `<span>${value}</span>`}
+            </div>
+        `;
+    });
+
+    document.getElementById('properties').innerHTML = propertiesHTML;
+    document.getElementById('propertiesModal').style.display = 'block';
+
+    // Add event listeners to inputs
+    document.querySelectorAll('.property-input').forEach(input => {
+        input.addEventListener('change', (e) => {
+            const property = e.target.dataset.property;
+            const value = e.target.value;
+            if (property === 'innerText') {
+                element.innerText = value;
+            } else {
+                element.style[property] = value;
+            }
+        });
     });
 }
 
-
-// Function to select an element within the app preview area
-function selectElement(el) {
-    if (currentElement) {
-        currentElement.classList.remove('selected');
+window.onclick = function(event) {
+    const modal = document.getElementById('propertiesModal');
+    if (event.target == modal) {
+        modal.style.display = "none";
     }
-    currentElement = el;
-    currentElement.classList.add('selected');
-}
+};
 
-// Function to update the generated JavaScript code based on the Blockly workspace
-function updateCode() {
-    const code = Blockly.JavaScript.workspaceToCode(workspace);
-    document.getElementById('generatedCode').textContent = code;
-}
-
-// Function to create a new project
-function newProject() {
-    workspace.clear();
-    document.getElementById('appPreview').innerHTML = '';
-    document.getElementById('generatedCode').textContent = '';
-}
-
-// Function to save the current project
-function saveProject() {
-    const xml = Blockly.Xml.workspaceToDom(workspace);
-    const xmlText = Blockly.Xml.domToPrettyText(xml);
-    const blob = new Blob([xmlText], {type: 'text/xml'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'blockscript_project.xml';
-    a.click();
-}
-
-// Function to run the generated JavaScript code
-function runProject() {
-    const code = document.getElementById('generatedCode').textContent;
-    eval(code);
-}
-
-// Function to toggle the view between the block editor and the code preview
-function toggleView() {
-    const blocklyArea = document.getElementById('blocklyArea');
-    const codeArea = document.getElementById('codeArea');
-    if (blocklyArea.style.display === 'none') {
-        blocklyArea.style.display = 'block';
-        codeArea.style.display = 'none';
-    } else {
-        blocklyArea.style.display = 'none';
-        codeArea.style.display = 'block';
-    }
-}
-
-// Function to change the aspect ratio of the app preview area
-function changeAspectRatio() {
-    const aspectRatio = document.getElementById('aspectRatio').value;
-    const appContainer = document.getElementById('appContainer');
-    if (aspectRatio === '9:16') {
-        appContainer.style.width = '360px';
-        appContainer.style.height = '640px';
-    } else if (aspectRatio === '16:9') {
-        appContainer.style.width = '640px';
-        appContainer.style.height = '360px';
-    }
-}
-
-// Function to export the project to HTML5
-function exportProject() {
-    const appHTML = document.getElementById('appPreview').innerHTML;
-    const blob = new Blob([appHTML], {type: 'text/html'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'blockscript_app.html';
-    a.click();
-}
-
-let currentElement = null;
-
-// Função para exibir a janela de propriedades
-function showProperties(element) {
-    const propertiesModal = document.getElementById('propertiesModal');
-    const propertiesContent = document.getElementById('propertiesContent');
-    propertiesContent.innerHTML = ''; // Limpa o conteúdo anterior
-
-    // Adiciona as propriedades do elemento selecionado
-    const elementType = document.createElement('p');
-    elementType.textContent = `Type: ${element.tagName}`;
-    propertiesContent.appendChild(elementType);
-
-    // Propriedades comuns
-    const idInput = createPropertyInput('ID', element.id);
-    idInput.addEventListener('input', (e) => element.id = e.target.value);
-    propertiesContent.appendChild(idInput);
-
-    const classInput = createPropertyInput('Class', element.className);
-    classInput.addEventListener('input', (e) => element.className = e.target.value);
-    propertiesContent.appendChild(classInput);
-
-    const styleInput = createPropertyInput('Style', element.style.cssText);
-    styleInput.addEventListener('input', (e) => element.style.cssText = e.target.value);
-    propertiesContent.appendChild(styleInput);
-
-    // Propriedades específicas do tipo de elemento
-    if (element.tagName === 'IMG') {
-        const srcInput = createPropertyInput('Source', element.src);
-        srcInput.addEventListener('input', (e) => element.src = e.target.value);
-        propertiesContent.appendChild(srcInput);
-    } else if (element.tagName === 'A') {
-        const hrefInput = createPropertyInput('Href', element.href);
-        hrefInput.addEventListener('input', (e) => element.href = e.target.value);
-        propertiesContent.appendChild(hrefInput);
-    }
-
-    propertiesModal.classList.remove('hidden');
-    currentElement = element;
-}
-
-// Função para criar um campo de input para uma propriedade
-function createPropertyInput(label, value) {
-    const wrapper = document.createElement('div');
-    const inputLabel = document.createElement('label');
-    inputLabel.textContent = label;
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = value;
-    wrapper.appendChild(inputLabel);
-    wrapper.appendChild(input);
-    return wrapper;
-}
-
-// Função para ocultar a janela de propriedades
-function hideProperties() {
-    const propertiesModal = document.getElementById('propertiesModal');
-    propertiesModal.classList.add('hidden');
-    currentElement = null;
-}
-
-// Adiciona o evento de clique nos elementos do preview para mostrar as propriedades
-document.getElementById('appPreview').addEventListener('click', function(e) {
-    if (e.target !== currentElement) {
-        showProperties(e.target);
-    }
+closeButton.addEventListener('click', () => {
+    modal.style.display = 'none';
 });
 
-// Fecha a janela de propriedades ao clicar fora dela
-document.addEventListener('click', function(e) {
-    if (currentElement && !document.getElementById('propertiesModal').contains(e.target) && e.target !== currentElement) {
-        hideProperties();
+window.addEventListener('click', (event) => {
+    if (event.target === modal) {
+        modal.style.display = 'none';
     }
 });
-
-

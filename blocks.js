@@ -57,6 +57,48 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 160,
         "tooltip": "Move a sprite by a specified amount",
         "helpUrl": ""
+    },
+    {
+        "type": "remove_sprite",
+        "message0": "Remove Sprite %1",
+        "args0": [
+            {
+                "type": "field_input",
+                "name": "SPRITE_NAME",
+                "text": "sprite1"
+            }
+        ],
+        "previousStatement": null,
+        "nextStatement": null,
+        "colour": 160,
+        "tooltip": "Remove an existing sprite",
+        "helpUrl": ""
+    },
+    {
+        "type": "change_sprite_property",
+        "message0": "Set Sprite %1 property %2 to %3",
+        "args0": [
+            {
+                "type": "field_input",
+                "name": "SPRITE_NAME",
+                "text": "sprite1"
+            },
+            {
+                "type": "field_input",
+                "name": "PROPERTY",
+                "text": "property"
+            },
+            {
+                "type": "field_input",
+                "name": "VALUE",
+                "text": "value"
+            }
+        ],
+        "previousStatement": null,
+        "nextStatement": null,
+        "colour": 160,
+        "tooltip": "Change a property of a sprite",
+        "helpUrl": ""
     }
 ]);
 

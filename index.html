@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BlockScript Studio 2024</title>
-    <title>Element Properties</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://unpkg.com/blockly/blockly.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
@@ -78,15 +77,17 @@
             <block type="app_move_element"></block>
         </category>
     </xml>
-    <div class="elementCategories">
-        <div class="element" data-type="circle">Circle</div>
-        <div class="element" data-type="rectangle">Rectangle</div>
-        <div class="element" data-type="text">Text</div>
+    <!-- Preview area -->
+    <div id="previewArea" style="position: relative; width: 100%; height: 500px; border: 1px solid #ddd;">
+        <!-- Dropped elements will appear here -->
     </div>
 
-    <div id="propertiesModal" class="properties-modal hidden">
-        <h3>Properties</h3>
-        <div id="propertiesContent"></div>
+    <div id="propertiesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Element Properties</h2>
+            <div id="properties"></div>
+        </div>
     </div>
 
     <script src="blocks.js"></script>
